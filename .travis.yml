@@ -1,3 +1,40 @@
+# .travis.yml
+# see http://about.travis-ci.org/docs/user/languages/php/ for more hints
+
+# define which language need to build
+language: php
+
+# list any PHP version you want to test against
+php:
+  # using major version aliases
+  # aliased to a recent 5.6.x version
+  - 5.6
+  # aliased to a recent 7.x version
+  - 7.0
+  # aliased to a recent 7.x version
+  - hhvm
+# optionally specify a list of environments, for example to test different RDBMS
+env:
+  - DB=mysql
+  - DB=pgsql
+# optionally set up exclutions and allowed failures in the matrix
+matrix:
+  exclude:
+    - php: hhvm
+      env: DB=pgsql  # PDO driver for pgsql is unsupported by HHVM (3rd party install for support)
+  allow_failures: # allow PHP versions can passed if build false
+    - php: 7.0
+    - php: hhvm
+# execute any number of scripts before the test run, custom env's are available as variables
+before_script:
+  - if [[ "$DB" == "pgsql" ]]; then psql -c "DROP DATABASE IF EXISTS hello_world_test;" -U postgres; fi
+  - if [[ "$DB" == "pgsql" ]]; then psql -c "create database hello_world_test;" -U postgres; fi
+  - if [[ "$DB" == "mysql" ]]; then mysql -e "create database IF NOT EXISTS hello_world_test;" -uroot; fi
+# omitting "script:" will default to phpunit
+# use the $DB env variable to determine the phpunit.xml to use
+script: phpunit --configuration phpunit_$DB.xml --coverage-text
+
+# configure notifications (slack)
 notifications:
   slack:
     secure: Dw1kW8yQOzMk2HmN+uw5hgCo01xjiFfNXn7lDbFJiqesGE7hCqkLx4s4a7R7oCq+So1CY7H5I0gqYTNgmqTpU92fr/eddtPq+T3AMZUP7AUKVVmL1Jpp7xLVyPCsmkod5TF0MQGNjEbw/IXg6fnmMdxmpDbV/rAVS8tUaL9OvgAp7IhMrhZ2KLBa24yFVCVRsoskR9kTYIUOD23UyVrms9afjghZBUox6QBctLCCIfuAapBn70WsJeS5IO038I94/8zskwFVI+slu5xjlbdKCo5lFxBxEsvSF00/C1RG9+hDoWT0JSLkVszL0gH2bH1g0RFFLw2Rjct+xYAsODX4Rj8fUVDysnsO6CUrCs7zR0SRyGYl2G9R5yQd25dnIuzkxT1zxob4O+U9z116d47ONU4WwzB8xURAgfHY8hT0XjKRiLiJw0bLcAtGpr0hsD4rqnYbIFMIVJ/97asV3pkFgCvx7Z4rWbstO+rXT8G+M4uCS4hy3KsCL6QyCNPjsLiCuKABOOgq8v7DYBdVlr4d6h6OeiI6VMfJfC/Vmi6sio1cUNsq1nFhVwNhcceg0Wh4qbtF00GEkigBkfkvr/DtdnlYyVE6WW2Uwwo0AFO2DvFyNP8uTapvAUovdtgGS7CLeDeRcWmKMOTIweMWqge3st8nTscrsBM8Ad20YNnp8i0=
